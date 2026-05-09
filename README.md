@@ -1,5 +1,10 @@
 > WARNING: I do not take responsibility if you damage your board or property. This guide is for educational purposes only — proceed at your own risk.
 
+
+This repo is fully complete and ready for a wokeing buikd of a esp32 s3, a 2.8 tft and 6 button user interface. you just need to add the tft driver when building. 
+
+
+
 # Flipper Zero ESP32 Port
 
 A port of the [Flipper Zero](https://flipperzero.one/) firmware to ESP32-based development boards. This project brings the Flipper Zero UI, services, and application framework to affordable ESP32 hardware — no Flipper Zero required.
