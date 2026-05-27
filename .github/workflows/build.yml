@@ -1,4 +1,4 @@
-name: Build Flipper ESP32 6-Button
+name: Build Flipper ESP32 Variants
 
 on:
   push:
@@ -9,58 +9,126 @@ on:
 
 jobs:
   build:
-    name: Build esp32s3_6buttons
+    name: Build ${{ matrix.board.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - name: esp32s3_6buttons
+            script_key: esp32s3
+            build_dir: build_s3
+            artifact_name: test
+            chip: esp32s3
+            flash_size: 16MB
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Clear Corrupted Managed Components
+        run: |
+          rm -rf managed_components
+          rm -f dependencies.lock
+
+      - name: Clean stale sdkconfig
+        run: |
+          rm -f sdkconfig
+          rm -f ${{ matrix.board.build_dir }}/sdkconfig
+
       - name: Install ESP-IDF system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 libglib2.0-dev
+          sudo apt-get install -y \
+            git wget flex bison gperf python3 python3-pip python3-venv \
+            cmake ninja-build ccache libffi-dev libssl-dev dfu-util \
+            libusb-1.0-0 libglib2.0-dev
 
-      - name: Setup ESP-IDF
+      - name: Cache ESP-IDF
+        uses: actions/cache@v4
+        id: idf-cache
+        with:
+          path: ~/esp/esp-idf
+          key: esp-idf-v5.4.1
+          restore-keys: esp-idf-v5.4.1
+
+      - name: Clone ESP-IDF v5.4.1
+        if: steps.idf-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/esp
-          git clone --branch v5.4.1 --depth 1 https://github.com/espressif/esp-idf.git ~/esp/esp-idf
-          cd ~/esp/esp-idf
-          ./install.sh esp32s3
+          git clone --branch v5.4.1 --depth 1 \
+            https://github.com/espressif/esp-idf.git ~/esp/esp-idf
+
+      - name: Cache ESP-IDF tools
+        uses: actions/cache@v4
+        id: idf-tools-cache
+        with:
+          path: ~/.espressif
+          key: esp-idf-tools-v5.4.1
+
+      - name: Install ESP-IDF tools
+        if: steps.idf-tools-cache.outputs.cache-hit != 'true'
+        run: |
+          ~/esp/esp-idf/install.sh all
+
+      - name: Verify ESP-IDF environment
+        run: |
+          source ~/esp/esp-idf/export.sh
+          echo "IDF_PATH=$IDF_PATH"
+          idf.py --version
 
       - name: Build
-        # Thêm biến môi trường này để bỏ qua lỗi kiểm tra hash/checksum của component
-        env:
-          IDF_COMPONENT_MANAGER_IGNORE_CHECKSUMS: "1"
         run: |
-          # Kích hoạt môi trường
           source ~/esp/esp-idf/export.sh
-          
-          # Đảm bảo venv tồn tại và active
-          if [ ! -d "$HOME/.espressif/python_env/idf5.4_py3.12_env" ]; then
-             python3 -m venv $HOME/.espressif/python_env/idf5.4_py3.12_env
-          fi
-          source $HOME/.espressif/python_env/idf5.4_py3.12_env/bin/activate
-          
-          # Build dự án
           chmod +x ./build.sh
-          ./build.sh --board 6btn --build-only
+          ./build.sh --board ${{ matrix.board.script_key }} --build-only
 
       - name: Package artifacts
         run: |
+          BOARD="${{ matrix.board.name }}"
+          CHIP="${{ matrix.board.chip }}"
+          FLASH_SIZE="${{ matrix.board.flash_size }}"
+          BUILD="${{ matrix.board.build_dir }}"
           STAGE="artifact_staging"
+
+          # Clean flat staging directory — what users actually unzip
+          rm -rf "$STAGE"
           mkdir -p "$STAGE/bootloader" "$STAGE/partition_table"
-          cp build_6btn/furi_esp32.bin "$STAGE/furi_esp32.bin"
-          cp build_6btn/bootloader/bootloader.bin "$STAGE/bootloader/bootloader.bin"
-          cp build_6btn/partition_table/partition-table.bin "$STAGE/partition_table/partition-table.bin"
-          if [ -f "build_6btn/flash_project_args" ]; then cp "build_6btn/flash_project_args" "$STAGE/flash_args.txt"; fi
+
+          # Firmware binaries
+          cp "$BUILD/furi_esp32.bin"                          "$STAGE/furi_esp32.bin"
+          cp "$BUILD/bootloader/bootloader.bin"               "$STAGE/bootloader/bootloader.bin"
+          cp "$BUILD/partition_table/partition-table.bin"     "$STAGE/partition_table/partition-table.bin"
+
+          # ESP-IDF flash-args file (contains verified offsets and flash params)
+          if [ -f "$BUILD/flash_project_args" ]; then
+            cp "$BUILD/flash_project_args" "$STAGE/flash_args.txt"
+          fi
+
+          # Generate board-specific flash scripts by substituting template placeholders
+          sed \
+            -e "s/__BOARD_NAME__/${BOARD}/g" \
+            -e "s/__CHIP__/${CHIP}/g"         \
+            -e "s/__FLASH_SIZE__/${FLASH_SIZE}/g" \
+            tools/flash_linux.sh > "$STAGE/flash_linux.sh"
+          chmod +x "$STAGE/flash_linux.sh"
+
+          sed \
+            -e "s/__BOARD_NAME__/${BOARD}/g" \
+            -e "s/__CHIP__/${CHIP}/g"         \
+            -e "s/__FLASH_SIZE__/${FLASH_SIZE}/g" \
+            tools/flash_windows.bat > "$STAGE/flash_windows.bat"
+
+          echo ""
+          echo "=== Staged artifact contents ==="
+          ls -lh "$STAGE" "$STAGE/bootloader" "$STAGE/partition_table"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: flipper-esp32s3-6buttons
+          name: ${{ matrix.board.artifact_name }}
           path: artifact_staging/
           retention-days: 30
