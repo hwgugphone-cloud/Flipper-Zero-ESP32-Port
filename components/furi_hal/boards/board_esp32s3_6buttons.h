@@ -102,6 +102,12 @@
 #define BOARD_PIN_PWR_EN         UINT16_MAX
 #define BOARD_PIN_NFC_SCL        UINT16_MAX
 #define BOARD_PIN_NFC_SDA        UINT16_MAX
+
+/* Bổ sung cổng I2C giả lập để pass lỗi build thư viện NFC */
+#define BOARD_NFC_I2C_PORT       I2C_NUM_1
+#define BOARD_NFC_I2C_FREQ_HZ    400000
+#define BOARD_NFC_I2C_ADDR       0x24
+
 #define BOARD_PIN_MIC_DATA       UINT16_MAX
 #define BOARD_PIN_MIC_CLK        UINT16_MAX
 
