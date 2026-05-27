@@ -9,81 +9,55 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.board.name }}
+    name: Build esp32s3_6buttons
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        board:
-          - name: esp32s3_6buttons
-            script_key: 6btn
-            build_dir: build_6btn
-            artifact_name: flipper-esp32s3-6buttons
-            chip: esp32s3
-            flash_size: 16MB
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Clear Corrupted Managed Components
-        run: |
-          rm -rf managed_components
-          rm -f dependencies.lock
-
-      - name: Clean stale sdkconfig
-        run: |
-          rm -f sdkconfig
-          rm -rf ${{ matrix.board.build_dir }}
-
       - name: Install ESP-IDF system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 libglib2.0-dev
 
-      - name: Cache ESP-IDF
-        uses: actions/cache@v4
-        id: idf-cache
-        with:
-          path: ~/esp/esp-idf
-          key: esp-idf-v5.4.1
-
-      - name: Clone ESP-IDF v5.4.1
-        if: steps.idf-cache.outputs.cache-hit != 'true'
+      - name: Setup ESP-IDF
         run: |
           mkdir -p ~/esp
           git clone --branch v5.4.1 --depth 1 https://github.com/espressif/esp-idf.git ~/esp/esp-idf
-
-      # FIX: Cài đặt và tạo môi trường ảo Python đúng cách
-      - name: Install ESP-IDF tools
-        run: |
-          source ~/esp/esp-idf/export.sh
-          ~/esp/esp-idf/install.sh esp32s3
-          source ~/.espressif/python_env/idf5.4_py3.12_env/bin/activate || true
+          cd ~/esp/esp-idf
+          ./install.sh esp32s3
 
       - name: Build
         run: |
+          # Kích hoạt môi trường
           source ~/esp/esp-idf/export.sh
+          
+          # Đảm bảo venv tồn tại và active
+          if [ ! -d "$HOME/.espressif/python_env/idf5.4_py3.12_env" ]; then
+             python3 -m venv $HOME/.espressif/python_env/idf5.4_py3.12_env
+          fi
+          source $HOME/.espressif/python_env/idf5.4_py3.12_env/bin/activate
+          
+          # Build dự án
           chmod +x ./build.sh
-          ./build.sh --board ${{ matrix.board.script_key }} --build-only
+          ./build.sh --board 6btn --build-only
 
       - name: Package artifacts
         run: |
-          BUILD="${{ matrix.board.build_dir }}"
           STAGE="artifact_staging"
-          rm -rf "$STAGE"
           mkdir -p "$STAGE/bootloader" "$STAGE/partition_table"
-          cp "$BUILD/furi_esp32.bin" "$STAGE/furi_esp32.bin"
-          cp "$BUILD/bootloader/bootloader.bin" "$STAGE/bootloader/bootloader.bin"
-          cp "$BUILD/partition_table/partition-table.bin" "$STAGE/partition_table/partition-table.bin"
-          if [ -f "$BUILD/flash_project_args" ]; then cp "$BUILD/flash_project_args" "$STAGE/flash_args.txt"; fi
+          cp build_6btn/furi_esp32.bin "$STAGE/furi_esp32.bin"
+          cp build_6btn/bootloader/bootloader.bin "$STAGE/bootloader/bootloader.bin"
+          cp build_6btn/partition_table/partition-table.bin "$STAGE/partition_table/partition-table.bin"
+          if [ -f "build_6btn/flash_project_args" ]; then cp "build_6btn/flash_project_args" "$STAGE/flash_args.txt"; fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.board.artifact_name }}
+          name: flipper-esp32s3-6buttons
           path: artifact_staging/
           retention-days: 30
