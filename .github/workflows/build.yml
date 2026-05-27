@@ -29,12 +29,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Clear Corrupted Managed Components
+        run: |
+          rm -rf managed_components
+          rm -f dependencies.lock
+
       - name: Clean stale sdkconfig
         run: |
           rm -f sdkconfig
-          rm -f ${{ matrix.board.build_dir }}/sdkconfig
+          rm -rf ${{ matrix.board.build_dir }}
 
-      # ... (Giữ nguyên các bước cài đặt môi trường và ESP-IDF như cũ) ...
       - name: Install ESP-IDF system dependencies
         run: |
           sudo apt-get update
@@ -53,11 +57,18 @@ jobs:
           mkdir -p ~/esp
           git clone --branch v5.4.1 --depth 1 https://github.com/espressif/esp-idf.git ~/esp/esp-idf
 
+      # FIX: Cài đặt và tạo môi trường ảo Python đúng cách
+      - name: Install ESP-IDF tools
+        run: |
+          source ~/esp/esp-idf/export.sh
+          ~/esp/esp-idf/install.sh esp32s3
+          source ~/.espressif/python_env/idf5.4_py3.12_env/bin/activate || true
+
       - name: Build
         run: |
           source ~/esp/esp-idf/export.sh
           chmod +x ./build.sh
-          ./build.sh --board 6btn --build-only
+          ./build.sh --board ${{ matrix.board.script_key }} --build-only
 
       - name: Package artifacts
         run: |
