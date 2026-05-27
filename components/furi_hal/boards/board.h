@@ -1,29 +1,23 @@
 /**
  * @file board.h
- * Board selection header — includes the active board definition.
- *
- * Select board via CMake: -DFLIPPER_BOARD=waveshare_c6_1.9
- * The build system defines BOARD_INCLUDE to the correct header path.
+ * Master board selection header — Ép chạy cấu hình Custom 6 nút (board_esp32s3_6buttons.h)
  */
 
 #pragma once
 
-#if defined(BOARD_INCLUDE)
-/* CMake sets BOARD_INCLUDE to e.g. "boards/board_waveshare_c6_1.9.h" */
-#include BOARD_INCLUDE
-#elif defined(BOARD_WAVESHARE_C6_1_9)
-#include "board_waveshare_c6_1.9.h"
-#else
-/* Default board */
+/* 1. Xóa bỏ hoàn toàn các cấu hình bo mạch generic khác để tránh xung đột */
+#undef BOARD_ESP32S3_GENERIC
+
+
+/* 2. Định nghĩa cứng định danh bo mạch của bạn */
+#ifndef BOARD_ESP32S3_6BUTTONS
+#define BOARD_ESP32S3_6BUTTONS
+#endif
+
+/* 3. Bắn thẳng vào file cấu hình 6 nút thực tế của bạn */
 #include "board_esp32s3_6buttons.h"
-#endif
 
-
-
-/* Sanity check: every board must define these */
+/* 4. Khóa (Guard) bảo vệ - Đảm bảo các file .c khác khi include board.h sẽ nhận diện đúng */
 #ifndef BOARD_NAME
-#error "Board header must define BOARD_NAME"
-#endif
-#ifndef BOARD_PIN_LCD_MOSI
-#error "Board header must define LCD pins"
+#define BOARD_NAME        "esp32s3_6buttons"
 #endif
