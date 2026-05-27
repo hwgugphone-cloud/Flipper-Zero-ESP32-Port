@@ -18,8 +18,7 @@
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 #include <esp_lcd_panel_io.h>
-#include "esp_lcd_ili9341.h"
-//#include <esp_lcd_panel_vendor.h> //added
+#include <esp_lcd_panel_vendor.h>
 #include <esp_lcd_panel_ops.h>
 #include <freertos/semphr.h>
 
@@ -224,10 +223,9 @@ void furi_hal_display_init(void) {
     ESP_ERROR_CHECK(esp_lcd_panel_io_tx_param(io_handle, 0x01 /* SWRESET */, NULL, 0));
     vTaskDelay(pdMS_TO_TICKS(150));
 
-    ESP_ERROR_CHECK(esp_lcd_new_panel_ili9341(io_handle, &panel_config, &panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
 
-    
-    /* Reset and initialize (the esp_lcd driver reset is redundant now but harmless) */
+    /* 3) esp_lcd does another RESX pulse, then SLPOUT + COLMOD + MADCTL. */
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
