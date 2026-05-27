@@ -1,15 +1,8 @@
 /**
- * @file board.h
- * Board definition: Custom ESP32-S3 ILI9341 6-Button Board
- *
- * MCU:      ESP32-S3
- * Display:  ILI9341 240x320 RGB565 via SPI
- * Input:    6 discrete buttons
- * SubGHz:   CC1101 via SPI
- * NFC:      PN532 via I2C
- * SD Card:  SPI
- * IR:       TX + RX
- * RGB LED:  WS2812 x1 (IO48)
+ * @file board_esp_s3.h
+ * Board definition: ESP32-S3 Custom Board (Optimized Layout)
+ * MCU:        ESP32-S3
+ * Display:    ST7789 240x135 RGB565 via SPI
  */
 
 #pragma once
@@ -18,7 +11,8 @@
 #define BOARD_NAME        "esp32s3_6buttons"
 #define BOARD_TARGET      "esp32s3"
 
-/* ---- Hardware Button Pins ---- */
+/* ---- 🛠️ HỆ THỐNG NÚT BẤM ĐIỀU HƯỚNG ---- */
+/* Kiểu 1: Driver quét trực tiếp */
 #define BOARD_PIN_BTN_UP         41
 #define BOARD_PIN_BTN_DOWN       40
 #define BOARD_PIN_BTN_RIGHT      38
@@ -42,7 +36,7 @@
 #define BOARD_LCD_H_RES          240
 #define BOARD_LCD_V_RES          135
 #define BOARD_LCD_SPI_HOST       SPI2_HOST
-#define BOARD_LCD_SPI_FREQ_HZ    (40 * 1000 * 1000)
+#define BOARD_LCD_SPI_FREQ_HZ    (20 * 1000 * 1000)
 #define BOARD_LCD_CMD_BITS       8
 #define BOARD_LCD_PARAM_BITS     8
 #define BOARD_LCD_SWAP_XY        true
@@ -125,16 +119,15 @@
 #define BOARD_HAS_NFC            0
 #define BOARD_HAS_SUBGHZ         0
 #define BOARD_HAS_MIC            0
-/* ---- RFID ---- */
-#define BOARD_PIN_RFID_RX       44
-#define BOARD_PIN_RFID_TX       43
-#define BOARD_RFID_UART_NUM     1
 
-/* ---- Battery ---- */
-#define BQ27220_ADDR            0x55
-#define BQ_I2C_PORT             I2C_NUM_0
-#define BQ_I2C_SDA              BOARD_PIN_QWIIC_SDA
-#define BQ_I2C_SCL              BOARD_PIN_QWIIC_SCL
+/* ---- ÉP LÕI DRIVER ĐỌC TRỰC TIẾP GPIO ---- */
+#define BOARD_BUTTONS_TYPE_GPIO  1
+#define BOARD_INPUT_ACTIVE_LOW   1
+#define BOARD_HAS_IO_EXPANDER    0
+
+/* ---- CẤU HÌNH QUẢN LÝ NGUỒN PIN GIẢ LẬP ---- */
+#define BQ27220_ADDR             0x00
+#define BQ_I2C_PORT              I2C_NUM_0
 #define HIGH_DRAIN_CURRENT_THRESHOLD (-200)
-#define FURI_HAL_POWER_VIRTUAL_CAPACITY_MAH     (1300U)
-#define BQ25896_CHARGE_LIMIT    1280
+#define FURI_HAL_POWER_VIRTUAL_CAPACITY_MAH (1520U)
+#define BQ25896_CHARGE_LIMIT     0
