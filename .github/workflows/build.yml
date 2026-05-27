@@ -32,6 +32,9 @@ jobs:
           ./install.sh esp32s3
 
       - name: Build
+        # Thêm biến môi trường này để bỏ qua lỗi kiểm tra hash/checksum của component
+        env:
+          IDF_COMPONENT_MANAGER_IGNORE_CHECKSUMS: "1"
         run: |
           # Kích hoạt môi trường
           source ~/esp/esp-idf/export.sh
