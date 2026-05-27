@@ -116,7 +116,7 @@
 #define BOARD_HAS_IR             0
 #define BOARD_HAS_IBUTTON        0
 #define BOARD_HAS_RFID           0
-#define BOARD_HAS_NFC            0
+#define BOARD_HAS_NFC            1
 #define BOARD_HAS_SUBGHZ         0
 #define BOARD_HAS_MIC            0
 
